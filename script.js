@@ -46,7 +46,11 @@ class Item {
     }
 }
 
-let balls = [new Ball(canvas.width / 2, canvas.height - 30, 4, -4)];
+const BALL_SPEED = 7;
+const ITEM_SPEED = 2;
+
+
+let balls = [new Ball(canvas.width / 2, canvas.height - 30, 7, -7)];
 let items = [];
 let paddleHeight = 10;
 let paddleWidth = 75;
@@ -61,6 +65,7 @@ let brickOffsetTop = 10;
 let brickOffsetLeft = 15;
 
 let score = 0;
+let animationFrameId = null;
 let bricks = [];
 
 for (let c = 0; c < brickColumnCount; c++) {
@@ -160,14 +165,21 @@ function applyItemEffect(type) {
     switch (type) {
         case "+3":
             for (let i = 0; i < 3; i++) {
-                balls.push(new Ball(paddleX + paddleWidth / 2, canvas.height - 20, (Math.random() - 0.5) * 4, -4));
+                balls.push(new Ball(paddleX + paddleWidth / 2, canvas.height - 20, BALL_SPEED * (Math.random() < 0.5 ? -1 : 1), -BALL_SPEED));
+
+
             }
             break;
         case "x3":
             let newBalls = [];
             balls.forEach(b => {
                 for (let i = 0; i < 2; i++) {
-                    newBalls.push(new Ball(b.x, b.y, -b.dx + Math.random(), -b.dy + Math.random()));
+                    const speed = BALL_SPEED;
+const angle = Math.random() * Math.PI * 2;
+const dx = speed * Math.cos(angle);
+const dy = speed * Math.sin(angle);
+newBalls.push(new Ball(b.x, b.y, dx, dy));
+
                 }
             });
             balls = balls.concat(newBalls);
@@ -184,7 +196,10 @@ function applyItemEffect(type) {
 }
 
 function initGame() {
-    balls = [new Ball(canvas.width / 2, canvas.height - 30, 4, -4)];
+    if (animationFrameId) { cancelAnimationFrame(animationFrameId); }
+    balls = [];
+    balls.push(new Ball(canvas.width / 2, canvas.height - 30, BALL_SPEED, -BALL_SPEED));
+
     items = [];
     paddleWidth = 75;
     paddleX = (canvas.width - paddleWidth) / 2;
@@ -295,5 +310,5 @@ function draw() {
         return;
     }
 
-    requestAnimationFrame(draw);
+    animationFrameId = requestAnimationFrame(draw);
 }
