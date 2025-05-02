@@ -1,2 +1,2 @@
 # chipibrick
-test
+https://kkambbab.github.io/chipibrick/
