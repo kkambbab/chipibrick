@@ -1,4 +1,3 @@
-// 전체 코드 통합
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
@@ -48,7 +47,10 @@ class Item {
 }
 
 const BALL_SPEED = 7;
-let balls = [new Ball(canvas.width / 2, canvas.height - 30, BALL_SPEED, -BALL_SPEED)];
+const ITEM_SPEED = 2;
+
+
+let balls = [new Ball(canvas.width / 2, canvas.height - 30, 7, -7)];
 let items = [];
 let paddleHeight = 10;
 let paddleWidth = 75;
@@ -65,45 +67,26 @@ let brickOffsetLeft = 15;
 let score = 0;
 let animationFrameId = null;
 let bricks = [];
-let level = 0;
 
-const brickLayouts = [
-    Array.from({ length: brickColumnCount }, () =>
-        Array.from({ length: brickRowCount }, () => 1)
-    ),
-    Array.from({ length: brickColumnCount }, (_, c) =>
-        Array.from({ length: brickRowCount }, (_, r) =>
-            (c >= 3 && c <= 6 && r >= 1 && r <= 3) ? 1 : 0
-        )
-    ),
-    Array.from({ length: brickColumnCount }, (_, c) =>
-        Array.from({ length: brickRowCount }, (_, r) =>
-            (r % 2 === c % 2 ? 1 : 0)
-        )
-    ),
-    Array.from({ length: brickColumnCount }, () =>
-        Array.from({ length: brickRowCount }, () => (Math.random() < 0.7 ? 1 : 0))
-    )
-];
-
-function loadLevel(lv) {
-    bricks = [];
-    const layout = brickLayouts[lv % brickLayouts.length];
-    for (let c = 0; c < brickColumnCount; c++) {
-        bricks[c] = [];
-        for (let r = 0; r < brickRowCount; r++) {
-            bricks[c][r] = {
-                x: 0,
-                y: 0,
-                status: layout[c][r]
-            };
-        }
+for (let c = 0; c < brickColumnCount; c++) {
+    bricks[c] = [];
+    for (let r = 0; r < brickRowCount; r++) {
+        bricks[c][r] = { x: 0, y: 0, status: 1 };
     }
 }
 
-function countBricks() {
-    return bricks.flat().filter(b => b.status === 1).length;
-}
+document.getElementById("startBtn").addEventListener("click", () => {
+    document.getElementById("startScreen").style.display = "none";
+    videoA.muted = false;
+    videoA.play().catch(() => { });
+    draw();
+});
+
+document.getElementById("restartBtn").addEventListener("click", () => {
+    initGame();
+});
+
+
 
 document.addEventListener("mousemove", e => {
     const relativeX = e.clientX - canvas.getBoundingClientRect().left;
@@ -111,6 +94,34 @@ document.addEventListener("mousemove", e => {
         paddleX = relativeX - paddleWidth / 2;
     }
 });
+
+const videoA = document.getElementById("videoA");
+const videoB = document.getElementById("videoB");
+const volumeSlider = document.getElementById("volumeSlider");
+
+videoA.muted = false;
+videoB.muted = true;
+videoA.play().catch(() => { });
+
+volumeSlider.addEventListener("input", () => {
+    const vol = parseFloat(volumeSlider.value);
+    videoA.volume = vol;
+    videoB.volume = vol;
+});
+videoA.volume = videoB.volume = volumeSlider.value;
+
+function reactionTrigger() {
+    videoB.style.opacity = 1;
+    videoA.muted = true;
+    videoB.muted = false;
+    if (window._videoTimeout) clearTimeout(window._videoTimeout);
+    window._videoTimeout = setTimeout(() => {
+        videoB.style.opacity = 0;
+        videoA.muted = false;
+        videoB.muted = true;
+        videoA.play().catch(() => { });
+    }, 400);
+}
 
 function collisionDetection() {
     balls.forEach(ball => {
@@ -127,11 +138,17 @@ function collisionDetection() {
                         ball.dy = -ball.dy;
                         b.status = 0;
                         score++;
-                        if (score === countBricks()) {
-                            level++;
-                            initGame();
+                        reactionTrigger();
+                        if (score === brickRowCount * brickColumnCount) {
+                            document.getElementById("restartScreen").style.display = "flex";
+                            document.querySelector("#restartScreen h1").innerHTML = "치피치피차파차파두비두비다바다바 매지컬 마이 두비두비 붐붐붐 <br> 치피치피차파차파두비두비다바다바 매지컬 마이 두비두비 붐붐붐 <br> 치피치피차파차파두비두비다바다바 매지컬 마이 두비두비 붐붐붐 <br> 치피치피차파차파두비두비다바다바 매지컬 마이 두비두비 붐붐붐 <br> 치피치피차파차파두비두비다바다바 매지컬 마이 두비두비 붐붐붐 <br> 치피치피차파차파두비두비다바다바 매지컬 마이 두비두비 붐붐붐 <br> 치피치피차파차파두비두비다바다바 매지컬 마이 두비두비 붐붐붐 <br> 치피치피차파차파두비두비다바다바 매지컬 마이 두비두비 붐붐붐 <br> 치피치피차파차파두비두비다바다바 매지컬 마이 두비두비 붐붐붐 <br> 치피치피차파차파두비두비다바다바 매지컬 마이 두비두비 붐붐붐";
+                            videoA.pause();
+                            videoB.pause();
                             return;
                         }
+
+
+
                         if (Math.random() < 0.3) {
                             const types = ["+3", "x3", "<<->>", "-"];
                             const randomType = types[Math.floor(Math.random() * types.length)];
@@ -149,6 +166,8 @@ function applyItemEffect(type) {
         case "+3":
             for (let i = 0; i < 3; i++) {
                 balls.push(new Ball(paddleX + paddleWidth / 2, canvas.height - 20, BALL_SPEED * (Math.random() < 0.5 ? -1 : 1), -BALL_SPEED));
+
+
             }
             break;
         case "x3":
@@ -156,10 +175,11 @@ function applyItemEffect(type) {
             balls.forEach(b => {
                 for (let i = 0; i < 2; i++) {
                     const speed = BALL_SPEED;
-                    const angle = Math.random() * Math.PI * 2;
-                    const dx = speed * Math.cos(angle);
-                    const dy = speed * Math.sin(angle);
-                    newBalls.push(new Ball(b.x, b.y, dx, dy));
+const angle = Math.random() * Math.PI * 2;
+const dx = speed * Math.cos(angle);
+const dy = speed * Math.sin(angle);
+newBalls.push(new Ball(b.x, b.y, dx, dy));
+
                 }
             });
             balls = balls.concat(newBalls);
@@ -174,6 +194,38 @@ function applyItemEffect(type) {
             break;
     }
 }
+
+function initGame() {
+    if (animationFrameId) { cancelAnimationFrame(animationFrameId); }
+    balls = [];
+    balls.push(new Ball(canvas.width / 2, canvas.height - 30, BALL_SPEED, -BALL_SPEED));
+
+    items = [];
+    paddleWidth = 75;
+    paddleX = (canvas.width - paddleWidth) / 2;
+    score = 0;
+
+    bricks = [];
+    for (let c = 0; c < brickColumnCount; c++) {
+        bricks[c] = [];
+        for (let r = 0; r < brickRowCount; r++) {
+            bricks[c][r] = { x: 0, y: 0, status: 1 };
+        }
+    }
+
+    document.getElementById("restartScreen").style.display = "none";
+    document.querySelector("#restartScreen h1").innerHTML = "우르륽...애옭....애앍....우르륵.....우륽....앩옭...매앍...";
+    videoA.currentTime = 0;
+    videoA.muted = false;
+    videoA.play();
+    videoB.pause();
+    videoB.currentTime = 0;
+    videoB.play().catch(() => { });
+    videoB.style.opacity = 0;
+
+    draw();
+}
+
 
 function checkItemCollisions() {
     items = items.filter(item => {
@@ -252,23 +304,11 @@ function draw() {
     items.forEach(item => item.move());
 
     if (balls.length === 0) {
-        // 게임 오버
+        document.getElementById("restartScreen").style.display = "flex";
+        videoA.pause();
+        videoB.pause();
         return;
     }
 
     animationFrameId = requestAnimationFrame(draw);
 }
-
-function initGame() {
-    if (animationFrameId) cancelAnimationFrame(animationFrameId);
-    balls = [new Ball(canvas.width / 2, canvas.height - 30, BALL_SPEED, -BALL_SPEED)];
-    items = [];
-    paddleWidth = 75;
-    paddleX = (canvas.width - paddleWidth) / 2;
-    score = 0;
-    loadLevel(level);
-    draw();
-}
-
-// 시작
-initGame();
